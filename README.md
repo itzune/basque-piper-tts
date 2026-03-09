@@ -19,7 +19,7 @@ Piper is a lightweight TTS engine designed to run with low resources. That makes
 - **Maider (female)**
   - Voice model: https://huggingface.co/itzune/maider-tts
   - Dataset: https://huggingface.co/datasets/itzune/maider-dataset
-- **Antton (male, work in progress)**
+- **Antton (male)**
   - Voice model: https://huggingface.co/itzune/antton-tts
   - Dataset: https://huggingface.co/datasets/itzune/antton-dataset
 

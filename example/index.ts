@@ -12,6 +12,7 @@ import {
 import Worker from './worker.ts?worker';
 
 type Language = 'en' | 'eu' | 'es' | 'fr';
+type DemoVoiceId = 'eu-maider-medium' | 'eu-antton-medium';
 
 const DEFAULT_TEXTS: Record<Language, string> = {
   en: 'Hello! This is a sample message generated with the Maider voice. Type the text you want and press listen.',
@@ -19,7 +20,31 @@ const DEFAULT_TEXTS: Record<Language, string> = {
   es: 'Hola. Este es un mensaje de prueba generado con la voz de Maider. Escribe el texto que quieras y pulsa para escuchar.',
   fr: "Bonjour. Ceci est un message d'exemple généré avec la voix de Maider. Saisissez le texte que vous souhaitez et appuyez pour écouter.",
 };
-const VOICE_ID = 'eu-maider-medium';
+const VOICE_LABELS: Record<Language, Record<DemoVoiceId, string>> = {
+  en: {
+    'eu-maider-medium': 'Maider (female)',
+    'eu-antton-medium': 'Antton (male)',
+  },
+  eu: {
+    'eu-maider-medium': 'Maider (emakumea)',
+    'eu-antton-medium': 'Antton (gizona)',
+  },
+  es: {
+    'eu-maider-medium': 'Maider (femenina)',
+    'eu-antton-medium': 'Antton (masculina)',
+  },
+  fr: {
+    'eu-maider-medium': 'Maider (feminine)',
+    'eu-antton-medium': 'Antton (masculine)',
+  },
+};
+
+const VOICE_FILE_STEMS: Record<DemoVoiceId, string> = {
+  'eu-maider-medium': 'maider-output.wav',
+  'eu-antton-medium': 'antton-output.wav',
+};
+
+const DEFAULT_VOICE_ID: DemoVoiceId = 'eu-maider-medium';
 const STORAGE_LANGUAGE_KEY = 'basque_piper_tts_language';
 const SUPPORTED_LANGUAGES: Language[] = ['en', 'eu', 'es', 'fr'];
 const LANGUAGE_LABELS: Record<Language, string> = {
@@ -35,7 +60,7 @@ const translations = {
     title: 'Basque Piper TTS',
     subtitle:
       'Generate natural Basque speech with Basque Piper TTS models. Customize the text, pick a voice, then listen or export the audio.',
-    voiceBadge: 'Voice: Maider (female)',
+    voiceLabel: 'Voice',
     languageBadge: 'Language: Euskara',
     references: 'References:',
     referencePiper: 'Piper project',
@@ -74,7 +99,7 @@ const translations = {
     title: 'Piper TTS Euskaraz',
     subtitle:
       'Euskarazko ahots naturalak sortu Basque Piper TTS modeloekin. Pertsonalizatu testua, aukeratu ahotsa eta entzun edo esportatu audioa.',
-    voiceBadge: 'Ahotsa: Maider (emakumea)',
+    voiceLabel: 'Ahotsa',
     languageBadge: 'Hizkuntza: Euskara',
     references: 'Erreferentziak:',
     referencePiper: 'Piper proiektua',
@@ -113,7 +138,7 @@ const translations = {
     title: 'Basque Piper TTS',
     subtitle:
       'Genera voz natural en euskera con los modelos Basque Piper TTS. Personaliza el texto, elige una voz y luego escucha o exporta el audio.',
-    voiceBadge: 'Voz: Maider (femenina)',
+    voiceLabel: 'Voz',
     languageBadge: 'Idioma: Euskera',
     references: 'Referencias:',
     referencePiper: 'Proyecto Piper',
@@ -152,7 +177,7 @@ const translations = {
     title: 'Basque Piper TTS',
     subtitle:
       "Générez une voix basque naturelle avec les modèles Basque Piper TTS. Personnalisez le texte, choisissez une voix, puis écoutez ou exportez l'audio.",
-    voiceBadge: 'Voix : Maider (féminine)',
+    voiceLabel: 'Voix',
     languageBadge: 'Langue : basque',
     references: 'Références :',
     referencePiper: 'Projet Piper',
@@ -239,7 +264,7 @@ document.querySelector('#app')!.innerHTML = `
           <p class="max-w-2xl text-base text-white/70 sm:text-lg" data-i18n="subtitle"></p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
-          <span class="rounded-full border border-violet-400/40 bg-violet-500/15 px-4 py-1 text-sm text-violet-200" data-i18n="voiceBadge"></span>
+          <span id="voiceBadge" class="rounded-full border border-violet-400/40 bg-violet-500/15 px-4 py-1 text-sm text-violet-200"></span>
           <span class="rounded-full border border-white/10 bg-white/5 px-4 py-1 text-sm text-white/70" data-i18n="languageBadge"></span>
         </div>
         <div class="flex flex-wrap items-center gap-4 text-sm text-white/60">
@@ -259,6 +284,14 @@ document.querySelector('#app')!.innerHTML = `
               <span id="helper" data-i18n="helper"></span>
               <span id="charCount">0 characters</span>
             </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <label for="voiceSelect" class="text-sm font-semibold uppercase tracking-[0.2em] text-white/60" data-i18n="voiceLabel"></label>
+            <select id="voiceSelect" class="control-ring rounded-full border border-white/15 bg-ink-900/80 px-4 py-2 text-sm text-white/90">
+              <option value="eu-maider-medium">Maider</option>
+              <option value="eu-antton-medium">Antton</option>
+            </select>
           </div>
 
           <div class="flex flex-wrap items-center gap-3">
@@ -328,6 +361,8 @@ const playerEl = document.getElementById('player') as HTMLAudioElement | null;
 const downloadButton = document.getElementById('download') as HTMLButtonElement | null;
 const storedListEl = document.getElementById('stored');
 const storedCountEl = document.getElementById('storedCount');
+const voiceSelectEl = document.getElementById('voiceSelect') as HTMLSelectElement | null;
+const voiceBadgeEl = document.getElementById('voiceBadge');
 
 const generateIconEl = document.getElementById('generateIcon');
 const resetIconEl = document.getElementById('resetIcon');
@@ -345,7 +380,15 @@ function renderIcon(
   icon: Parameters<typeof createElement>[0],
   attrs: { size?: number; class?: string } = {}
 ) {
-  return createElement(icon, attrs);
+  const element = createElement(icon) as SVGElement;
+  if (attrs.size) {
+    element.setAttribute('width', String(attrs.size));
+    element.setAttribute('height', String(attrs.size));
+  }
+  if (attrs.class) {
+    element.setAttribute('class', attrs.class);
+  }
+  return element;
 }
 
 mountIcon(generateIconEl, renderIcon(Sparkles, { size: 18 }));
@@ -373,6 +416,7 @@ let statusState: StatusState = { type: 'idle' };
 let audioUrl: string | null = null;
 let isGenerating = false;
 let isDownloading = false;
+let currentVoiceId: DemoVoiceId = DEFAULT_VOICE_ID;
 
 function normalizeLanguage(value: string): Language | null {
   const normalized = value.toLowerCase();
@@ -603,6 +647,24 @@ function applyTranslations() {
   document.title = t.title;
 }
 
+function applyVoiceOptions() {
+  if (!voiceSelectEl) return;
+  const labels = VOICE_LABELS[currentLanguage];
+  for (const option of Array.from(voiceSelectEl.options)) {
+    const value = option.value as DemoVoiceId;
+    if (labels[value]) {
+      option.textContent = labels[value];
+    }
+  }
+}
+
+function applyVoiceBadge() {
+  if (!voiceBadgeEl) return;
+  const t = translations[currentLanguage];
+  const voiceLabel = VOICE_LABELS[currentLanguage][currentVoiceId];
+  voiceBadgeEl.textContent = `${t.voiceLabel}: ${voiceLabel}`;
+}
+
 function updateLanguageToggle() {
   languageButtons.forEach((button) => {
     const lang = button.dataset.lang as Language | undefined;
@@ -625,11 +687,21 @@ function setLanguage(language: Language, persist = true) {
   }
   document.documentElement.lang = language;
   applyTranslations();
+  applyVoiceOptions();
+  applyVoiceBadge();
   updateLanguageToggle();
   applyGenerateState();
   applyStatus();
   applyRenderState();
   updateCharCount();
+}
+
+function setVoice(voiceId: DemoVoiceId) {
+  currentVoiceId = voiceId;
+  if (voiceSelectEl && voiceSelectEl.value !== voiceId) {
+    voiceSelectEl.value = voiceId;
+  }
+  applyVoiceBadge();
 }
 
 function setPromptToDefault() {
@@ -659,7 +731,7 @@ downloadButton?.addEventListener('click', () => {
   if (!audioUrl) return;
   const anchor = document.createElement('a');
   anchor.href = audioUrl;
-  anchor.download = 'maider-output.wav';
+  anchor.download = VOICE_FILE_STEMS[currentVoiceId];
   anchor.click();
 });
 
@@ -672,9 +744,19 @@ generateButton?.addEventListener('click', () => {
   worker.postMessage({
     type: 'init',
     text,
-    voiceId: VOICE_ID,
+    voiceId: currentVoiceId,
   });
 });
+
+voiceSelectEl?.addEventListener('change', () => {
+  const nextVoiceId = voiceSelectEl.value as DemoVoiceId;
+  if (nextVoiceId !== 'eu-maider-medium' && nextVoiceId !== 'eu-antton-medium') {
+    return;
+  }
+  setVoice(nextVoiceId);
+});
+
+setVoice(DEFAULT_VOICE_ID);
 
 worker.postMessage({ type: 'stored' });
 worker.addEventListener('message', (event: MessageEvent) => {
