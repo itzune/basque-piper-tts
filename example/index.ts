@@ -15,10 +15,10 @@ type Language = 'en' | 'eu' | 'es' | 'fr';
 type DemoVoiceId = 'eu-maider-medium' | 'eu-antton-medium';
 
 const DEFAULT_TEXTS: Record<Language, string> = {
-  en: 'Hello! This is a sample message generated with the Maider voice. Type the text you want and press listen.',
-  eu: 'Kaixo! Hau Maider ahotsarekin sortutako proba mezua da. Idatzi nahi duzun testua eta entzuteko sakatu.',
-  es: 'Hola. Este es un mensaje de prueba generado con la voz de Maider. Escribe el texto que quieras y pulsa para escuchar.',
-  fr: "Bonjour. Ceci est un message d'exemple généré avec la voix de Maider. Saisissez le texte que vous souhaitez et appuyez pour écouter.",
+  en: 'Hello! This is a sample message generated with the Basque Piper TTS model. Type the text you want and press listen.',
+  eu: 'Kaixo! Hau euskarazko Piper TTS ereduarekin sortutako proba mezua da. Idatzi nahi duzun testua eta entzuteko sakatu.',
+  es: 'Hola. Este es un mensaje de prueba generado con el modelo Basque Piper TTS. Escribe el texto que quieras y pulsa para escuchar.',
+  fr: "Bonjour. Ceci est un message d'exemple généré avec le modèle Basque Piper TTS. Saisissez le texte que vous souhaitez et appuyez pour écouter.",
 };
 const VOICE_LABELS: Record<Language, Record<DemoVoiceId, string>> = {
   en: {
